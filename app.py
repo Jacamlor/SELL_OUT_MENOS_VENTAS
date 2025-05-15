@@ -7,7 +7,8 @@ import re
 st.set_page_config(page_title="Verificar menos vendido está en sell out", layout="centered")
 st.title("🔄 Verificar menos vendido está en sell out")
 
-# Función de limpieza robusta
+
+# Función de normalización robusta (elimina caracteres no alfanuméricos y espacios)
 def normalizar(valor):
     if pd.isna(valor):
         return ""
@@ -18,7 +19,7 @@ uploaded_file = st.file_uploader("📤 Sube tu archivo Excel o CSV", type=["xlsx
 
 if uploaded_file:
     try:
-        # Leer CSV o Excel con nombre de hoja
+        # Detectar tipo de archivo y leer contenido
         if uploaded_file.name.endswith(".csv"):
             df = pd.read_csv(uploaded_file, dtype=str)
             sheet_name = "csv_file"
@@ -27,20 +28,19 @@ if uploaded_file:
             sheet_name = excel.sheet_names[0]
             df = pd.read_excel(excel, sheet_name=sheet_name, dtype=str)
 
-        # Validación de columnas mínimas
+        # Validar número de columnas
         if df.shape[1] < 6:
             st.error("❌ El archivo debe tener al menos 6 columnas (A hasta F).")
         else:
-            # Extracción y limpieza de datos
+            # Limpieza de datos en columnas A (1ª) y F (6ª)
             col_a_raw = df.iloc[0:200, 0].fillna("")
             col_f_raw = df.iloc[:, 5].fillna("")
 
             col_a = col_a_raw.apply(normalizar)
             col_f = col_f_raw.apply(normalizar)
-
             col_a_set = set(col_a)
 
-            # Comparación
+            # Comparación F vs A1:A200
             resultados = []
             fila_en_a = []
 
@@ -53,7 +53,7 @@ if uploaded_file:
                     resultados.append("No")
                     fila_en_a.append("")
 
-            # Añadir columnas de resultados
+            # Agregar resultados al dataframe original
             df["Valor comprobado (col F)"] = col_f_raw
             df["Existe en A1:A200"] = resultados
             df["Fila en A"] = fila_en_a
@@ -61,17 +61,22 @@ if uploaded_file:
             st.success("✅ Verificación completada.")
             st.dataframe(df)
 
-            # Función para exportar a Excel con nombre de hoja
-            def convertir_a_excel(df, hoja):
+            # Crear segunda hoja con columnas A, C, D, E si Existe en A1:A200 = "Sí"
+            columnas_acde = [df.columns[0], df.columns[2], df.columns[3], df.columns[4]]
+            df_coincidentes = df[df["Existe en A1:A200"] == "Sí"][columnas_acde]
+
+            # Exportar a Excel con dos hojas
+            def convertir_a_excel(df, hoja1, hoja2, df_extra):
                 output = BytesIO()
                 with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-                    df.to_excel(writer, index=False, sheet_name=hoja)
+                    df.to_excel(writer, index=False, sheet_name=hoja1)
+                    df_extra.to_excel(writer, index=False, sheet_name=hoja2)
                 return output.getvalue()
 
-            # Preparar archivo de descarga
-            excel_data = convertir_a_excel(df, hoja=sheet_name)
+            excel_data = convertir_a_excel(df, hoja1=sheet_name, hoja2="Coincidencias", df_extra=df_coincidentes)
             file_name = f"resultado_{sheet_name}.xlsx"
 
+            # Botón de descarga
             st.download_button(
                 label="⬇️ Descargar resultado en Excel",
                 data=excel_data,
