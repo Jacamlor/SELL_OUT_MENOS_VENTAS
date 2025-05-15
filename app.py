@@ -62,9 +62,14 @@ if uploaded_file:
             st.success("✅ Verificación completada.")
             st.dataframe(df)
 
-            # Crear DataFrame con coincidencias (columnas A, C, D, E)
-            columnas_acde = [df.columns[0], df.columns[2], df.columns[3], df.columns[4]]
-            df_coincidentes = df[df[columna_resultado].str.strip().str.upper() == "SÍ"][columnas_acde]
+             # Filtrar filas que tienen "Sí" como coincidencia
+            df_coincidentes = df[df[columna_resultado].str.strip().str.upper() == "SÍ"]
+
+            # Seleccionar columnas por nombre explícito
+            # Ajusta estos nombres si los tuyos son distintos
+            columnas_a_mostrar = ["CODIGO", "DESCRIPCION", "S01", "V01"]
+            df_coincidentes = df_coincidentes[[col for col in columnas_a_mostrar if col in df_coincidentes.columns]]
+
 
             # Mostrar coincidencias en pantalla
             if not df_coincidentes.empty:
