@@ -53,19 +53,22 @@ if uploaded_file:
                     resultados.append("No")
                     fila_en_a.append("")
 
-            # Agregar resultados al dataframe original
+            # Nombre de la columna que contiene los resultados
+            columna_resultado = "Existe en A1:A200"
+
+            # Agregar columnas al dataframe original
             df["Valor comprobado (col F)"] = col_f_raw
-            df["Existe en A1:A200"] = resultados
+            df[columna_resultado] = resultados
             df["Fila en A"] = fila_en_a
 
             st.success("✅ Verificación completada.")
             st.dataframe(df)
 
-            # Crear segunda hoja con columnas A, C, D, E si Existe en A1:A200 = "Sí"
+            # Crear hoja de coincidencias con columnas A, C, D, E si Existe en A1:A200 == "Sí"
             columnas_acde = [df.columns[0], df.columns[2], df.columns[3], df.columns[4]]
-            df_coincidentes = df[df["Existe en A1:A200"] == "Sí"][columnas_acde]
+            df_coincidentes = df[df[columna_resultado] == "Sí"][columnas_acde]
 
-            # Exportar a Excel con dos hojas
+            # Función para exportar el archivo con dos hojas
             def convertir_a_excel(df, hoja1, hoja2, df_extra):
                 output = BytesIO()
                 with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
@@ -76,7 +79,7 @@ if uploaded_file:
             excel_data = convertir_a_excel(df, hoja1=sheet_name, hoja2="Coincidencias", df_extra=df_coincidentes)
             file_name = f"resultado_{sheet_name}.xlsx"
 
-            # Botón de descarga
+            # Botón para descargar el archivo Excel
             st.download_button(
                 label="⬇️ Descargar resultado en Excel",
                 data=excel_data,
