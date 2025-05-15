@@ -52,17 +52,19 @@ if uploaded_file:
             st.success("✅ Verificación completada.")
             st.dataframe(df)
 
-            def convertir_a_excel(df):
+              def convertir_a_excel(df, hoja):
                 output = BytesIO()
                 with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-                    df.to_excel(writer, index=False)
+                    df.to_excel(writer, index=False, sheet_name=hoja)
                 return output.getvalue()
 
-            excel_data = convertir_a_excel(df)
+            excel_data = convertir_a_excel(df, hoja=sheet_name)
+            file_name = f"resultado_{sheet_name}.xlsx"
+
             st.download_button(
                 label="⬇️ Descargar resultado en Excel",
                 data=excel_data,
-                file_name="resultado_f_en_a_normalizado.xlsx",
+                file_name=file_name,
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
 
