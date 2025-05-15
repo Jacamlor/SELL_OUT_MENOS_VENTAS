@@ -66,7 +66,7 @@ if uploaded_file:
 
             # Crear hoja de coincidencias con columnas A, C, D, E si Existe en A1:A200 == "Sí"
             columnas_acde = [df.columns[0], df.columns[2], df.columns[3], df.columns[4]]
-            df_coincidentes = df[df[columna_resultado] == "Sí"][columnas_acde]
+            df_coincidentes = df[df[columna_resultado].str.strip().str.upper() == "SÍ"][columnas_acde]
 
             # Función para exportar el archivo con dos hojas
             def convertir_a_excel(df, hoja1, hoja2, df_extra):
