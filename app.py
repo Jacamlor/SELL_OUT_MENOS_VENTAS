@@ -8,6 +8,7 @@ st.set_page_config(page_title="Verificar menos vendido está en sell out", layou
 st.title("🔄 Verificar menos vendido está en sell out")
 
 
+
 # Función para limpiar y normalizar texto
 def normalizar(valor):
     if pd.isna(valor):
@@ -19,7 +20,7 @@ uploaded_file = st.file_uploader("📤 Sube tu archivo Excel o CSV", type=["xlsx
 
 if uploaded_file:
     try:
-        # Leer archivo según extensión
+        # Leer archivo según tipo
         if uploaded_file.name.endswith(".csv"):
             df = pd.read_csv(uploaded_file, dtype=str)
             sheet_name = "csv_file"
@@ -28,11 +29,11 @@ if uploaded_file:
             sheet_name = excel.sheet_names[0]
             df = pd.read_excel(excel, sheet_name=sheet_name, dtype=str)
 
-        # Validación de estructura
+        # Validación básica
         if df.shape[1] < 6:
             st.error("❌ El archivo debe tener al menos 6 columnas (A hasta F).")
         else:
-            # Normalizar valores de columna A (A1:A200) y F
+            # Selección y normalización de datos
             col_a_raw = df.iloc[0:200, 0].fillna("")
             col_f_raw = df.iloc[:, 5].fillna("")
 
@@ -40,9 +41,9 @@ if uploaded_file:
             col_f = col_f_raw.apply(normalizar)
             col_a_set = set(col_a)
 
-            # Comparación
             resultados = []
             fila_en_a = []
+
             for valor in col_f:
                 if valor in col_a_set:
                     resultados.append("Sí")
@@ -52,40 +53,42 @@ if uploaded_file:
                     resultados.append("No")
                     fila_en_a.append("")
 
-            # Guardar resultados en el DataFrame
             columna_resultado = "Existe en A1:A200"
             df["Valor comprobado (col F)"] = col_f_raw
             df[columna_resultado] = resultados
             df["Fila en A"] = fila_en_a
 
-            # Mostrar resultados principales
             st.success("✅ Verificación completada.")
             st.dataframe(df)
 
-             # Filtrar filas que tienen "Sí" como coincidencia
-            df_coincidentes = df[df[columna_resultado].str.strip().str.upper() == "SÍ"]
+            # 🔍 Detectar coincidencias de forma robusta
+            # Mostrar nombres de columnas disponibles
+            st.write("🧾 Columnas disponibles:", list(df.columns))
 
-            # Seleccionar columnas por nombre explícito
-            # Ajusta estos nombres si los tuyos son distintos
-            columnas_a_mostrar = ["CODIGO", "DESCRIPCION", "S01", "V01"]
-            df_coincidentes = df_coincidentes[[col for col in columnas_a_mostrar if col in df_coincidentes.columns]]
+            # Verificar que la columna de resultado exista y filtrar por "Sí"
+            columna_real = [col for col in df.columns if "existe en a1:a200" in col.lower()]
+            if columna_real:
+                columna_real = columna_real[0]
+            else:
+                st.error("❌ No se encontró la columna de coincidencias.")
+                st.stop()
 
+            df_coincidentes = df[df[columna_real].astype(str).str.strip().str.upper() == "SÍ"]
 
-            # Mostrar coincidencias en pantalla
+            # Mostrar coincidencias en pantalla usando columnas por posición
             if not df_coincidentes.empty:
                 st.markdown("### ✅ Coincidencias encontradas (A, C, D, E)")
-                st.dataframe(df_coincidentes)
+                st.dataframe(df_coincidentes[[df.columns[0], df.columns[2], df.columns[3], df.columns[4]]])
             else:
-                st.info("ℹ️ No se encontraron coincidencias para mostrar.")
+                st.warning("⚠️ No se detectaron coincidencias, aunque se esperaba que sí.")
 
-            # Función para convertir un DataFrame a Excel
-            def convertir_a_excel_individual(df):
+            # Exportar archivo Excel completo
+            def convertir_a_excel_individual(df_exportar):
                 output = BytesIO()
                 with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-                    df.to_excel(writer, index=False)
+                    df_exportar.to_excel(writer, index=False)
                 return output.getvalue()
 
-            # Descargar archivo principal
             excel_data_1 = convertir_a_excel_individual(df)
             st.download_button(
                 label="⬇️ Descargar Excel completo",
@@ -94,9 +97,10 @@ if uploaded_file:
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
 
-            # Descargar archivo de coincidencias
+            # Exportar coincidencias como archivo independiente
             if not df_coincidentes.empty:
-                excel_data_2 = convertir_a_excel_individual(df_coincidentes)
+                df_export = df_coincidentes[[df.columns[0], df.columns[2], df.columns[3], df.columns[4]]]
+                excel_data_2 = convertir_a_excel_individual(df_export)
                 st.download_button(
                     label="⬇️ Descargar solo Coincidencias (A,C,D,E)",
                     data=excel_data_2,
