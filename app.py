@@ -3,9 +3,9 @@ import pandas as pd
 from io import BytesIO
 import re
 
-st.set_page_config(page_title="Verificar si F está en A1:A68", layout="centered")
+st.set_page_config(page_title="Verificar si menos vendido está en sell out", layout="centered")
 
-st.title("🔄 Comparar valores de la columna F contra A1:A68 (versión robusta)")
+st.title("🔄 Comparar códigos menos vendidos con sell out (versión robusta)")
 
 def normalizar(valor):
     if pd.isna(valor):
@@ -24,8 +24,8 @@ if uploaded_file:
         if df.shape[1] < 6:
             st.error("❌ El archivo debe tener al menos 6 columnas (A hasta F).")
         else:
-            # Limpiar A1:A68 y toda F con función de normalización
-            col_a_raw = df.iloc[0:68, 0].fillna("")
+            # Limpiar A1:A200 y toda F con función de normalización
+            col_a_raw = df.iloc[0:200, 0].fillna("")
             col_f_raw = df.iloc[:, 5].fillna("")
 
             col_a = col_a_raw.apply(normalizar)
@@ -46,7 +46,7 @@ if uploaded_file:
                     fila_en_a.append("")
 
             df["Valor comprobado (col F)"] = col_f_raw
-            df["Existe en A1:A68"] = resultados
+            df["Existe en A1:A200"] = resultados
             df["Fila en A"] = fila_en_a
 
             st.success("✅ Verificación completada.")
